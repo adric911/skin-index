@@ -149,7 +149,7 @@ function renderCompareProductOptions(){
  const label=cid?(sorted.length?"Select a product…":"No products are mapped to this concern"):"Select a product…";
  const opts='<option value="">'+label+'</option>'+sorted.map(p=>{
    const rel=mappedStrength(p.id,cid);
-   return '<option value="'+p.id+'">'+esc(p.name)+' — '+esc(brand(p.brand_id))+(rel?' · '+esc(rel):'')+'</option>';
+   return '<option value="'+p.id+'">'+esc(p.name)+' — '+esc(brand(p.brand_id))+'</option>';
  }).join("");
  $("a").innerHTML=opts;$("b").innerHTML=opts;
  if(sorted.some(p=>p.id===currentA))$("a").value=currentA;
@@ -218,16 +218,16 @@ async function renderCompare(){
  }
  const concernName=$("compare-concern").selectedOptions[0]?.text||"selected concern";
  const relA=mappedStrength(x.id,cid),relB=mappedStrength(y.id,cid);
- $("cmp").innerHTML=[["A",x,relA],["B",y,relB]].map(([label,p,rel])=>'<div class="card"><div class="brand">'+esc(label+" · "+brand(p.brand_id))+'</div><h3>'+esc(p.name)+'</h3><div class="muted">'+esc(p.category||"Skincare")+(p.subcategory?" · "+esc(p.subcategory):"")+'</div><div class="detail-section"><b>Alignment to '+esc(concernName)+'</b><p class="muted"><span class="pill">'+esc(rel||"Not mapped")+'</span></p></div><div><b>Product data</b><p class="muted">The result below uses concern mapping, mapped ingredient evidence and disclosed concentration data currently captured by Skin Index.</p></div></div>').join("");
+ $("cmp").innerHTML=[["A",x,relA],["B",y,relB]].map(([label,p,rel])=>'<div class="card"><div class="brand">'+esc(label+" · "+brand(p.brand_id))+'</div><h3>'+esc(p.name)+'</h3><div class="muted">'+esc(p.category||"Skincare")+(p.subcategory?" · "+esc(p.subcategory):"")+'</div><div class="detail-section"><b>Alignment to '+esc(concernName)+'</b><p class="muted"><span class="pill">'+"Documented match"+'</span></p></div><div><b>Product data</b><p class="muted">The result below uses concern mapping, mapped ingredient evidence and disclosed concentration data currently captured by Skin Index.</p></div></div>').join("");
  $("compare-result").innerHTML='<div class="compare-result"><h3>Result for '+esc(concernName)+'</h3><p class="muted">Analysing the documented formulation signals…</p></div>';
  try{
    const d=await compareData(x,y,cid);
    let html='<div class="compare-result"><h3>Result for '+esc(concernName)+'</h3>';
    if(d.aScore>d.bScore || d.bScore>d.aScore){
      const isA=d.aScore>d.bScore,p=isA?x:y,score=isA?d.aScore:d.bScore,other=isA?y:x,reasons=isA?d.reasonsA:d.reasonsB;
-     html+='<div class="winner">Stronger documented alignment: '+esc(p.name)+'</div><p>'+esc(p.name)+' has the stronger current Skin Index evidence for <b>'+esc(concernName)+'</b> than '+esc(other.name)+'.</p><ul class="reason-list">'+reasons.map(z=>'<li>'+esc(z)+'</li>').join("")+'</ul><div class="detail-grid"><div class="fact"><b>Concern mapping</b><div class="muted">'+esc(isA?relA:relB)+'</div></div><div class="fact"><b>Ingredient evidence</b><div class="muted">'+(isA?d.aEvidence:d.bEvidence)+' high-evidence mappings · '+(isA?d.aDisclosed:d.bDisclosed)+' disclosed concentrations</div></div></div>';
+     html+='<div class="winner">Stronger documented alignment: '+esc(p.name)+'</div><p>'+esc(p.name)+' has the stronger current Skin Index evidence for <b>'+esc(concernName)+'</b> than '+esc(other.name)+'.</p><ul class="reason-list">'+reasons.map(z=>'<li>'+esc(z)+'</li>').join("")+'</ul><div class="detail-grid"><div class="fact"><b>Concern mapping</b><div class="muted">'+"Documented match"+'</div></div><div class="fact"><b>Ingredient evidence</b><div class="muted">'+(isA?d.aEvidence:d.bEvidence)+' high-evidence mappings · '+(isA?d.aDisclosed:d.bDisclosed)+' disclosed concentrations</div></div></div>';
    }else{
-     html+='<div class="winner">Same documented alignment</div><p>Both products have the same current concern-alignment signal. Skin Index does not invent a winner when the documented evidence is equivalent.</p><div class="detail-grid"><div class="fact"><b>'+esc(x.name)+'</b><div class="muted">'+esc(relA)+' · '+d.aEvidence+' high-evidence mappings · '+d.aDisclosed+' disclosed concentrations</div></div><div class="fact"><b>'+esc(y.name)+'</b><div class="muted">'+esc(relB)+' · '+d.bEvidence+' high-evidence mappings · '+d.bDisclosed+' disclosed concentrations</div></div></div>';
+     html+='<div class="winner">Same documented alignment</div><p>Both products have the same current concern-alignment signal. Skin Index does not invent a winner when the documented evidence is equivalent.</p><div class="detail-grid"><div class="fact"><b>'+esc(x.name)+'</b><div class="muted">'+"Documented match · "+d.aEvidence+' high-evidence mappings · '+d.aDisclosed+' disclosed concentrations</div></div><div class="fact"><b>'+esc(y.name)+'</b><div class="muted">'+"Documented match · "+d.bEvidence+' high-evidence mappings · '+d.bDisclosed+' disclosed concentrations</div></div></div>';
    }
    html+='<p class="small muted">This is a concern-specific formulation alignment result, not a universal product-quality rating.</p></div>';
    $("compare-result").innerHTML=html;
