@@ -125,38 +125,64 @@ async function openProduct(id){
  }catch(e){console.error(e);$("product-detail").innerHTML='<h2>'+esc(p.name)+'</h2><p class="muted">The product record loaded, but its detailed formulation data could not be retrieved right now.</p>';}
 }
 
-function compareData(x,y,cid){
- const cx=cid?mappedStrength(x.id,cid):"" ,cy=cid?mappedStrength(y.id,cid):"";
- const px=concernNames(x.id),py=concernNames(y.id);
- const facts=[];
- if(cid){if(cx)facts.push({p:"A",t:cx==="primary"?"A has a primary mapping to the selected concern.":"A has a secondary mapping to the selected concern."});if(cy)facts.push({p:"B",t:cy==="primary"?"B has a primary mapping to the selected concern.":"B has a secondary mapping to the selected concern."});}
- const aScore=(cx==="primary"?5:cx==="secondary"?2:0)+(px.length*.15);
- const bScore=(cy==="primary"?5:cy==="secondary"?2:0)+(py.length*.15);
- let winner=null;if(aScore!==bScore)winner=aScore>bScore?"A":"B";
- return {aScore,bScore,winner,facts,px,py};
+async function compareData(x,y,cid){
+ const [pa,pb]=await Promise.all([
+   get("product_ingredients",{select:"ingredient_id,disclosed_concentration,disclosed_unit,evidence_level,strength_level",product_id:"eq."+x.id,limit:"100"}),
+   get("product_ingredients",{select:"ingredient_id,disclosed_concentration,disclosed_unit,evidence_level,strength_level",product_id:"eq."+y.id,limit:"100"})
+ ]);
+ const ids=[...new Set([...pa,...pb].map(z=>z.ingredient_id).filter(Boolean))];
+ const ing=ids.length?await get("ingredients",{select:"id,name,evidence_level,family",id:"in.("+ids.join(",")+")",limit:"100"}):[];
+ const im=Object.fromEntries(ing.map(z=>[z.id,z]));
+ const cx=cid?mappedStrength(x.id,cid):"",cy=cid?mappedStrength(y.id,cid):"";
+ const aEvidence=pa.filter(z=>String(z.evidence_level||"").toLowerCase()==="high").length;
+ const bEvidence=pb.filter(z=>String(z.evidence_level||"").toLowerCase()==="high").length;
+ const aDisclosed=pa.filter(z=>z.disclosed_concentration!=null).length;
+ const bDisclosed=pb.filter(z=>z.disclosed_concentration!=null).length;
+ let aScore=(cx==="primary"?5:cx==="secondary"?2:0),bScore=(cy==="primary"?5:cy==="secondary"?2:0),reasonsA=[],reasonsB=[];
+ if(cx)reasonsA.push(cx==="primary"?"Direct primary concern mapping.":"Direct secondary concern mapping.");
+ if(cy)reasonsB.push(cy==="primary"?"Direct primary concern mapping.":"Direct secondary concern mapping.");
+ if(aEvidence>bEvidence){aScore+=1;reasonsA.push("More mapped ingredients currently carry high evidence labels in Skin Index.");}
+ if(bEvidence>aEvidence){bScore+=1;reasonsB.push("More mapped ingredients currently carry high evidence labels in Skin Index.");}
+ if(aDisclosed>bDisclosed){aScore+=.5;reasonsA.push("More product-specific ingredient concentrations are disclosed.");}
+ if(bDisclosed>aDisclosed){bScore+=.5;reasonsB.push("More product-specific ingredient concentrations are disclosed.");}
+ const namesA=pa.map(z=>im[z.ingredient_id]?.name).filter(Boolean).slice(0,10);
+ const namesB=pb.map(z=>im[z.ingredient_id]?.name).filter(Boolean).slice(0,10);
+ return {aScore,bScore,reasonsA,reasonsB,namesA,namesB,aEvidence,bEvidence,aDisclosed,bDisclosed};
 }
-function renderCompare(){
+async function renderCompare(){
  const x=S.products.find(p=>p.id===$("a").value),y=S.products.find(p=>p.id===$("b").value);if(!x||!y)return;
- $("cmp").innerHTML=[["A",x],["B",y]].map(([label,p])=>'<div class="card"><div class="brand">'+esc(label+" · "+brand(p.brand_id))+'</div><h3>'+esc(p.name)+'</h3><div class="muted">'+esc(p.category||"Skincare")+(p.subcategory?" · "+esc(p.subcategory):"")+'</div><div class="detail-section"><b>Mapped concerns</b><p class="muted">'+esc(concernNames(p.id).join(", ")||"No mapped concerns")+'</p></div><div><b>Profile-independent fact</b><p class="muted">Ingredient concentration is only treated as known when the product record explicitly discloses it.</p></div></div>').join("");
- const d=compareData(x,y,$("compare-concern").value);
- let html='<div class="compare-result"><h3>Which is better aligned?</h3>';
- if(!$("compare-concern").value) html+='<p class="muted">Choose a concern above to get a direct evidence-based comparison. The result will use the selected concern mapping rather than a generic product rating.</p>';
- else if(d.winner){
-   const p=d.winner==="A"?x:y,other=d.winner==="A"?y:x;
-   html+='<div class="winner">'+esc(p.name)+'</div><p>Based on the current Skin Index data, this is the better-aligned option for <b>'+esc($("compare-concern").selectedOptions[0].text)+'</b>.</p><ul class="reason-list">'+(d.facts.filter(f=>f.p===d.winner).map(f=>"<li>"+esc(f.t)+"</li>").join("")||"<li>Its current concern mapping provides the strongest direct signal.</li>")+'<li>Comparison is limited to documented formulation and concern data; it is not a universal quality ranking.</li></ul><p class="small muted">A: '+d.aScore.toFixed(1)+' · B: '+d.bScore.toFixed(1)+'</p>';
- }else html+='<p>Neither product has a stronger direct mapping to the selected concern in the current dataset. Review their product detail records for ingredient and formulation differences.</p>';
- $("compare-result").innerHTML=html+'</div>';
+ $("cmp").innerHTML=[["A",x],["B",y]].map(([label,p])=>'<div class="card"><div class="brand">'+esc(label+" · "+brand(p.brand_id))+'</div><h3>'+esc(p.name)+'</h3><div class="muted">'+esc(p.category||"Skincare")+(p.subcategory?" · "+esc(p.subcategory):"")+'</div><div class="detail-section"><b>Mapped concerns</b><p class="muted">'+esc(concernNames(p.id).join(", ")||"No mapped concerns")+'</p></div><div><b>What the data says</b><p class="muted">The comparison checks concern mapping, mapped ingredient evidence labels and product-specific concentration disclosures.</p></div></div>').join("");
+ const cid=$("compare-concern").value;
+ if(!cid){$("compare-result").innerHTML='<div class="compare-result"><h3>Which is better aligned?</h3><p class="muted">Choose a concern above. Skin Index will then compare the two products using documented concern mapping and formulation evidence rather than a generic rating.</p></div>';return;}
+ $("compare-result").innerHTML='<div class="compare-result"><h3>Analysing the two formulations…</h3></div>';
+ try{
+   const d=await compareData(x,y,cid);
+   let winner=d.aScore>d.bScore?"A":d.bScore>d.aScore?"B":null;
+   let html='<div class="compare-result"><h3>Which is better aligned?</h3>';
+   if(winner){
+     const p=winner==="A"?x:y, reasons=winner==="A"?d.reasonsA:d.reasonsB;
+     html+='<div class="winner">'+esc(p.name)+'</div><p>For <b>'+esc($("compare-concern").selectedOptions[0].text)+'</b>, the current Skin Index evidence gives this product the stronger documented alignment.</p><ul class="reason-list">'+reasons.map(z=>'<li>'+esc(z)+'</li>').join("")+'</ul><div class="detail-grid"><div class="fact"><b>Mapped ingredients</b><div class="muted">'+esc((winner==="A"?d.namesA:d.namesB).join(", ")||"None mapped")+'</div></div><div class="fact"><b>Evidence / disclosed concentration signals</b><div class="muted">'+(winner==="A"?d.aEvidence:d.bEvidence)+' high-evidence ingredient mappings · '+(winner==="A"?d.aDisclosed:d.bDisclosed)+' disclosed concentrations</div></div></div>';
+   }else html+='<p>Neither product has a stronger documented alignment on the selected concern. Their current data signals are tied, so the product detail records should be used to inspect formulation differences.</p>';
+   html+='<p class="small muted">This is a profile/concern alignment result, not a universal product-quality rating.</p></div>';
+   $("compare-result").innerHTML=html;
+ }catch(e){console.error(e);$("compare-result").innerHTML='<div class="compare-result"><p class="muted">Comparison data could not be loaded. Please try again.</p></div>';}
 }
-
 function buildProfile(){
  const profile={age:$("age").value,gender:$("gender").value,region:$("region").value,climate:$("climate").value,skin:$("skin").value,sensitivity:$("sensitivity").value,routine:$("routine").value};
  const c=S.concerns.find(x=>x.name===$("concern").value);if(!c)return;
  const rows=S.products.map(p=>({p,...productScore(p,c.id,profile)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score||a.p.name.localeCompare(b.p.name)).slice(0,6);
- $("rec").innerHTML='<strong>'+esc(profile.age)+' · '+esc(profile.region)+' · '+esc(profile.climate)+'</strong><p class="muted">'+esc(profile.skin)+' skin · '+esc(profile.sensitivity)+' sensitivity · concern: '+esc(c.name)+'</p><p class="small muted">Gender is recorded as optional context but is not used as an efficacy assumption. Scores are a transparent alignment heuristic based on current product mappings and formulation-category signals.</p>'+
- (rows.length?rows.map(x=>'<div style="padding:16px 0;border-top:1px solid #dfe5dc"><div style="display:flex;justify-content:space-between;gap:12px"><div><b>'+esc(x.p.name)+'</b><div class="muted">'+esc(brand(x.p.brand_id))+'</div></div><span class="score">'+x.score.toFixed(1)+'/7</span></div><ul class="reason-list">'+x.reasons.slice(0,3).map(r=>'<li>'+esc(r)+'</li>').join("")+'</ul><button class="btn alt" style="margin-top:8px" data-product="'+esc(x.p.id)+'">View product →</button></div>').join(""):'<p class="muted">No products currently have enough mapped evidence for this concern.</p>');
+ if(!rows.length){$("rec").innerHTML='<strong>No sufficiently mapped matches yet</strong><p class="muted">There is not enough current product-to-concern evidence to build a transparent shortlist for this profile.</p>';return;}
+ const top=rows[0],second=rows[1];
+ let html='<strong>Best aligned for this profile</strong><div style="margin-top:10px;font-size:22px;font-weight:800">'+esc(top.p.name)+'</div><div class="muted">'+esc(brand(top.p.brand_id))+' · '+top.score.toFixed(1)+'/7 alignment</div><ul class="reason-list">'+top.reasons.slice(0,4).map(r=>'<li>'+esc(r)+'</li>').join("")+'</ul>';
+ if(second){
+   const diff=top.score-second.score;
+   html+='<div class="compare-result"><b>Why this one over the next option?</b><p class="muted">'+(diff>0?"It has the stronger current concern/formulation alignment signals for your selected profile.":"The two products are very close on the current data.")+'</p><div class="detail-grid"><div class="fact"><b>Product A</b><div>'+esc(top.p.name)+'</div><div class="score">'+top.score.toFixed(1)+'/7</div></div><div class="fact"><b>Product B</b><div>'+esc(second.p.name)+'</div><div class="score">'+second.score.toFixed(1)+'/7</div></div></div></div>';
+ }
+ html+='<p class="small muted">Profile: '+esc(profile.age)+' · '+esc(profile.region)+' · '+esc(profile.climate)+' · '+esc(profile.skin)+' skin · '+esc(profile.sensitivity)+' sensitivity · '+esc(c.name)+'. Gender is recorded as optional context and is not used as an efficacy assumption.</p><h3 style="margin-top:24px">Other aligned products</h3>';
+ html+=rows.slice(1).map(x=>'<div style="padding:14px 0;border-top:1px solid #dfe5dc"><div style="display:flex;justify-content:space-between;gap:12px"><div><b>'+esc(x.p.name)+'</b><div class="muted">'+esc(brand(x.p.brand_id))+'</div></div><span class="score">'+x.score.toFixed(1)+'/7</span></div><button class="btn alt" style="margin-top:8px" data-product="'+esc(x.p.id)+'">View product →</button></div>').join("");
+ $("rec").innerHTML=html;
  document.querySelectorAll("#rec [data-product]").forEach(b=>b.onclick=()=>openProduct(b.dataset.product));
 }
-
 async function load(){
  const qs=await Promise.all([
    get("products",{select:"id,name,category,subcategory,brand_id,image_url,origin_region,description,confidence,official_url",status:"eq.published",order:"name",limit:"1000"}),
