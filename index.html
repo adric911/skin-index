@@ -18,17 +18,19 @@ nav{height:72px;padding:0 6%;display:flex;align-items:center;justify-content:spa
 </style>
 </head>
 <body>
-<nav><div class="logo">skin index</div><div class="links"><a id="nav-products">Products</a><a id="nav-ingredients">Ingredients</a><a id="nav-compare">Compare</a><a id="nav-profile">Skin Profile</a></div></nav>
+<nav><div class="logo">skin index</div><div class="links"><a id="nav-products">Products</a><a id="nav-ingredients">Ingredients</a><a id="nav-brands">Brands</a><a id="nav-compare">Compare</a><a id="nav-profile">Skin Profile</a></div></nav>
 <main class="wrap">
 <section class="hero"><div><div class="eyebrow">AI-powered skincare intelligence</div><h1>Understand your skin. Research what you use.</h1><p>Products, ingredients and formulation signals in one transparent skincare intelligence layer — without the hype.</p><div class="buttons"><button id="hero-profile" class="btn">Find what’s right for me</button><button id="hero-products" class="btn alt">Explore products</button></div></div><div class="heroCard"><div class="muted">Example Skin Profile</div><div class="profile"><strong>35–44 · Singapore</strong><div class="tags"><span class="pill">Oily</span><span class="pill">Dark spots</span><span class="pill">Mild sensitivity</span><span class="pill">Hot & humid</span></div><p class="muted">The Agent considers profile, climate, concerns, ingredient evidence and formulation characteristics.</p></div></div></section>
 
 <section id="products-section" class="section"><div class="eyebrow">Global Product Index</div><h2>Research products, not hype.</h2><p class="lead">Search the catalogue, select a product, then open its full formulation intelligence.</p><div class="toolbar"><input id="q" class="input" placeholder="Search product or brand…"><select id="product-select" class="select"><option>Select a product…</option></select></div><div id="product-view" class="card" style="margin-top:22px"><p class="muted">Select a product to view its image, description, ingredients, functions and use.</p></div></section>
 
-<section id="ingredients" class="section"><div class="eyebrow">Ingredient Library</div><h2>Understand what’s inside.</h2><p class="lead">Search or select an ingredient only when you want to research it. The library is expanding across actives, barrier lipids, humectants, botanicals and UV filters.</p><div class="toolbar"><input id="ingredient-q" class="input" placeholder="Search ingredients…"><select id="ingredient-select" class="select"><option>Select an ingredient…</option></select></div><div id="ingredient-view" class="card" style="margin-top:22px"><p class="muted">Select an ingredient to see what it does, evidence, typical use context and products containing it.</p></div></section>
+<section id="ingredients" class="section"><div class="eyebrow">Ingredient Library</div><h2>Understand what’s inside.</h2><p class="lead">Select an ingredient to see what it does, the evidence level, and the products that contain it — with disclosed concentrations ordered from highest to lowest where available.</p><div class="toolbar"><input id="ingredient-q" class="input" placeholder="Search ingredients…"><select id="ingredient-select" class="select"><option>Select an ingredient…</option></select></div><div id="ingredient-view" class="card" style="margin-top:22px"><p class="muted">Select an ingredient to see its functions, evidence and products containing it.</p></div></section>
+
+<section id="brands" class="section"><div class="eyebrow">Brand Intelligence</div><h2>Research a brand.</h2><p class="lead">See the products in a brand’s catalogue and the ingredients mapped to those products, including ingredient functions and disclosed concentrations where available.</p><div class="toolbar"><input id="brand-q" class="input" placeholder="Search brands…"><select id="brand-select" class="select"><option>Select a brand…</option></select></div><div id="brand-view" class="card" style="margin-top:22px"><p class="muted">Select a brand to see its product and ingredient intelligence.</p></div></section>
 
 <section id="compare" class="section"><div class="eyebrow">Compare</div><h2>Compare formulations.</h2><p class="lead">Start with the skin concern you want to solve. Then choose two products that are mapped to that concern. Skin Index compares their documented formulation signals.</p><div class="card" style="margin-top:22px"><label class="field" style="margin-bottom:0"><b>1. What are you comparing for?</b><select id="compare-concern" class="select"></select></label></div><div class="toolbar" style="margin-top:14px"><select id="a" class="select"></select><select id="b" class="select"></select></div><div id="cmp" class="split" style="margin-top:22px"></div><div id="compare-result"></div></section>
 
-<section id="profile" class="section"><div class="eyebrow">Skin Profile Agent</div><h2>Start with your skin.</h2><p class="lead">Tell the Agent more than just your skin type. It uses your profile as context, then explains why each product is or is not aligned.</p><div class="split"><div class="card">
+<section id="profile" class="section"><div class="eyebrow">Skin Profile Agent</div><h2>Start with your skin.</h2><p class="lead">Tell the Agent about your skin, climate and main concern. It recommends a product that is directly mapped to your concern and explains why it fits your profile.</p><div class="split"><div class="card">
 <label class="field">Age group<select id="age" class="select"><option>18–24</option><option>25–34</option><option>35–44</option><option>45–54</option><option>55+</option></select></label>
 <label class="field">Gender <span class="muted small">(optional context)</span><select id="gender" class="select"><option>Prefer not to say</option><option>Female</option><option>Male</option><option>Non-binary</option></select></label>
 <label class="field">Where you live<select id="region" class="select"><option>Southeast Asia</option><option>East Asia</option><option>South Asia</option><option>Middle East</option><option>Europe</option><option>North America</option><option>Latin America</option><option>Australia / New Zealand</option><option>Africa</option></select></label>
@@ -38,7 +40,7 @@ nav{height:72px;padding:0 6%;display:flex;align-items:center;justify-content:spa
 <label class="field">Sensitivity<select id="sensitivity" class="select"><option>Low</option><option>Mild</option><option>High</option></select></label>
 <label class="field">Routine preference<select id="routine" class="select"><option>Simple</option><option>Balanced</option><option>Detailed</option></select></label>
 <button id="build-profile" class="btn">Build my shortlist</button>
-</div><div id="rec" class="card"><strong>Your profile</strong><p class="muted">Complete the profile and build a shortlist. The Agent will show a profile-alignment score and the factual reasons behind it.</p></div></div></section>
+</div><div id="rec" class="card"><strong>Your recommendation</strong><p class="muted">Complete the profile to receive a concern-specific product recommendation.</p></div></div></section>
 </main>
 <footer class="footer"><div class="wrap">Skin Index · AI-powered skincare intelligence</div></footer>
 
@@ -83,6 +85,13 @@ async function openProductIntoView(id){
  }catch(e){console.error(e);$("product-view").innerHTML='<p class="muted">Product detail data could not be loaded. Please try again.</p>';}
 }
 
+function renderBrands(){
+ const q=String($("brand-q").value||"").toLowerCase().trim();
+ const rows=S.brands.filter(b=>!q||b.name.toLowerCase().includes(q));
+ const current=$("brand-select").value;
+ $("brand-select").innerHTML='<option value="">'+(rows.length?"Select a brand…":"No matching brands")+'</option>'+rows.map(b=>'<option value="'+b.id+'">'+esc(b.name)+'</option>').join("");
+ if(rows.some(b=>b.id===current))$("brand-select").value=current;
+}
 function renderIngredients(){
  const q=($("ingredient-q").value||"").toLowerCase().trim();
  const rows=S.ingredients.filter(i=>!q||i.name.toLowerCase().includes(q)||(i.family||"").toLowerCase().includes(q));
@@ -91,12 +100,43 @@ function renderIngredients(){
  if(rows.some(i=>i.id===current))sel.value=current;
 }
 async function showSelectedIngredient(){
- const id=$("ingredient-select").value;if(!id){$("ingredient-view").innerHTML='<p class="muted">Select an ingredient to see what it does, evidence, typical use context and products containing it.</p>';return;}
+ const id=$("ingredient-select").value;
+ if(!id){$("ingredient-view").innerHTML='<p class="muted">Select an ingredient to see its functions, evidence and products containing it.</p>';return;}
  const i=S.ingredients.find(x=>x.id===id);if(!i)return;
- $("ingredient-view").innerHTML='<div class="brand">'+esc(i.family||"Ingredient")+'</div><h3>'+esc(i.name)+'</h3><p class="lead">'+esc(i.description||"Ingredient information not yet expanded.")+'</p><div class="detail-grid"><div class="fact"><b>Functions</b><div class="muted">'+esc((i.functions||[]).join(", ")||"Not yet mapped")+'</div></div><div class="fact"><b>Evidence</b><div class="muted">'+esc(i.evidence_level||"Not yet assessed")+'</div></div></div><div class="detail-section"><h3>Products containing it</h3><div id="ingredient-products" class="tags"><span class="muted">Loading…</span></div></div>';
- try{const rows=await get("product_ingredients",{select:"product_id",ingredient_id:"eq."+id,limit:"100"});const ids=[...new Set(rows.map(x=>x.product_id))];$("ingredient-products").innerHTML=ids.length?ids.slice(0,30).map(pid=>{const p=S.products.find(x=>x.id===pid);return p?'<button class="btn alt" data-product="'+pid+'">'+esc(p.name)+'</button>':""}).join(""):"<span class='muted'>No products mapped yet.</span>";document.querySelectorAll("#ingredient-products [data-product]").forEach(b=>b.onclick=()=>{$("product-select").value=b.dataset.product;showSelectedProduct();go("products-section")});}catch(e){$("ingredient-products").innerHTML="<span class='muted'>Product mappings could not be loaded.</span>";}
+ $("ingredient-view").innerHTML='<div class="brand">'+esc(i.family||"Ingredient")+'</div><h3>'+esc(i.name)+'</h3><p class="lead">'+esc(i.description||"Ingredient information not yet expanded.")+'</p><div class="detail-grid"><div class="fact"><b>Functions</b><div class="muted">'+esc((i.functions||[]).join(", ")||"Not yet mapped")+'</div></div><div class="fact"><b>Evidence</b><div class="muted">'+esc(i.evidence_level||"Not yet assessed")+'</div></div></div><div class="detail-section"><h3>Products containing '+esc(i.name)+'</h3><p class="small muted">Products with disclosed concentrations are ordered highest to lowest. Products without a disclosed concentration are listed separately — Skin Index does not infer a percentage from INCI order.</p><div id="ingredient-products" class="stack"><span class="muted">Loading…</span></div></div>';
+ try{
+   const rows=await get("product_ingredients",{select:"product_id,disclosed_concentration,disclosed_unit,strength_level,inci_order,evidence_level,function_notes",ingredient_id:"eq."+id,limit:"500"});
+   const mapped=rows.map(r=>({...r,p:S.products.find(x=>x.id===r.product_id)})).filter(x=>x.p);
+   mapped.sort((a,b)=>{
+     const av=a.disclosed_concentration!=null?Number(a.disclosed_concentration):null,bv=b.disclosed_concentration!=null?Number(b.disclosed_concentration):null;
+     if(av!=null&&bv!=null)return bv-av;
+     if(av!=null)return -1;if(bv!=null)return 1;
+     const rank=z=>z==="high"?0:z==="moderate"?1:z==="low"?2:3;
+     return rank(String(b.strength_level||"").toLowerCase())-rank(String(a.strength_level||"").toLowerCase())||a.p.name.localeCompare(b.p.name);
+   });
+   const disclosed=mapped.filter(x=>x.disclosed_concentration!=null),unknown=mapped.filter(x=>x.disclosed_concentration==null);
+   const card=x=>'<div class="fact" style="cursor:pointer" data-product="'+esc(x.p.id)+'"><div style="display:flex;justify-content:space-between;gap:14px"><div><b>'+esc(x.p.name)+'</b><div class="muted">'+esc(brand(x.p.brand_id))+'</div></div><strong>'+esc(x.disclosed_concentration!=null?x.disclosed_concentration+" "+(x.disclosed_unit||"%"):"Not disclosed")+'</strong></div><div class="small muted">'+(x.strength_level?esc(x.strength_level)+" formulation signal · ":"")+esc(x.function_notes||"Open product intelligence for formulation context.")+'</div></div>';
+   $("ingredient-products").innerHTML=(disclosed.length?'<div class="eyebrow" style="margin-bottom:8px">Disclosed concentration</div>'+disclosed.map(card).join(""):"<p class='muted'>No product-specific concentration disclosures are currently captured.</p>")+(unknown.length?'<div class="eyebrow" style="margin:20px 0 8px">Concentration not disclosed</div>'+unknown.map(card).join(""):"");
+   document.querySelectorAll("#ingredient-products [data-product]").forEach(b=>b.onclick=()=>{$("product-select").value=b.dataset.product;showSelectedProduct();go("products-section")});
+ }catch(e){console.error(e);$("ingredient-products").innerHTML="<span class='muted'>Product mappings could not be loaded.</span>";}
 }
-
+async function showSelectedBrand(){
+ const id=$("brand-select").value;
+ if(!id){$("brand-view").innerHTML='<p class="muted">Select a brand to see its product and ingredient intelligence.</p>';return;}
+ const b=S.brands.find(x=>x.id===id);if(!b)return;
+ const products=S.products.filter(p=>p.brand_id===id);
+ $("brand-view").innerHTML='<div class="brand">Brand</div><h3>'+esc(b.name)+'</h3><p class="lead">'+esc(b.origin_region||"Global")+" · "+products.length+' published products in Skin Index.</p><div id="brand-products" class="stack"><span class="muted">Loading ingredient intelligence…</span></div>';
+ try{
+   const pids=products.map(p=>p.id); const rows=pids.length?await get("product_ingredients",{select:"product_id,ingredient_id,disclosed_concentration,disclosed_unit,strength_level,function_notes",product_id:"in.("+pids.join(",")+")",limit:"1000"}):[];
+   const ids=[...new Set(rows.map(x=>x.ingredient_id).filter(Boolean))]; const ings=ids.length?await get("ingredients",{select:"id,name,functions,evidence_level,family",id:"in.("+ids.join(",")+")",limit:"500"}):[];
+   const im=Object.fromEntries(ings.map(x=>[x.id,x]));
+   $("brand-products").innerHTML=products.slice(0,60).map(p=>{
+     const ps=rows.filter(r=>r.product_id===p.id); 
+     return '<div class="fact"><div class="brand">'+esc(b.name)+'</div><b style="font-size:18px">'+esc(p.name)+'</b><div class="muted">'+esc(p.category||"Skincare")+(p.subcategory?" · "+esc(p.subcategory):"")+'</div><div class="tags" style="margin-top:10px">'+(ps.length?ps.slice(0,12).map(r=>{const i=im[r.ingredient_id];return i?'<span class="pill"><b>'+esc(i.name)+'</b> · '+esc(r.disclosed_concentration!=null?r.disclosed_concentration+" "+(r.disclosed_unit||"%"):"not disclosed")+' · '+esc((i.functions||[]).slice(0,2).join(", ")||"function not mapped")+'</span>':""}).join(""):"<span class='muted'>No ingredient mappings yet.</span>")+'</div><button class="btn alt" style="margin-top:10px" data-product="'+esc(p.id)+'">Open product intelligence →</button></div>';
+   }).join("");
+   document.querySelectorAll("#brand-products [data-product]").forEach(btn=>btn.onclick=()=>{$("product-select").value=btn.dataset.product;showSelectedProduct();go("products-section")});
+ }catch(e){console.error(e);$("brand-products").innerHTML="<p class='muted'>Brand ingredient data could not be loaded.</p>";}
+}
 function renderCompareProductOptions(){
  const cid=$("compare-concern").value;
  const mapped=cid?S.products.filter(p=>concernMap(p.id).some(m=>m.concern_id===cid)):S.products;
@@ -121,7 +161,8 @@ function renderCompareProductOptions(){
 function fillSelects(){
  $("concern").innerHTML=S.concerns.map(x=>"<option>"+esc(x.name)+"</option>").join("");
  $("compare-concern").innerHTML=S.concerns.map(x=>"<option value='"+esc(x.id)+"'>"+esc(x.name)+"</option>").join("");
- renderProducts();renderIngredients();renderCompareProductOptions();
+ $("brand-select").innerHTML='<option value="">Select a brand…</option>'+S.brands.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join("");
+ renderProducts();renderIngredients();renderBrands();renderCompareProductOptions();
 }
 function concernMap(pid){return S.pcs.filter(x=>x.product_id===pid)}
 function concernNames(pid){return concernMap(pid).map(m=>S.concerns.find(c=>c.id===m.concern_id)?.name).filter(Boolean)}
@@ -130,16 +171,16 @@ function mappedStrength(pid,cid){const m=S.pcs.find(x=>x.product_id===pid&&x.con
 function productScore(p,cid,profile){
  let score=0,reasons=[];
  const rel=mappedStrength(p.id,cid);
- if(rel==="primary"){score+=5;reasons.push("Mapped as a primary concern for this product.");}
- else if(rel==="secondary"){score+=2;reasons.push("Mapped as a secondary concern for this product.");}
- else reasons.push("No direct Skin Index concern mapping for the selected concern.");
+ if(!rel)return {score:0,reasons:[]};
+ score+=rel==="primary"?5:2;
+ reasons.push("Directly mapped to your selected concern.");
  const text=(p.category+" "+(p.subcategory||"")).toLowerCase();
  if(profile){
-   if(profile.climate==="Hot & humid" && /gel|essence|serum|cleanser|lotion|light/.test(text)){score+=1;reasons.push("Its product format is generally compatible with a hot, humid routine.");}
-   if(profile.climate==="Cold & dry" && /cream|moistur|balm|barrier/.test(text)){score+=1;reasons.push("Its product format provides a stronger fit for a cold, dry routine.");}
+   if(profile.climate==="Hot & humid" && /gel|essence|serum|cleanser|lotion|light/.test(text)){score+=1;reasons.push("The format is compatible with a hot, humid routine.");}
+   if(profile.climate==="Cold & dry" && /cream|moistur|balm|barrier/.test(text)){score+=1;reasons.push("The format provides stronger moisture support for a cold, dry routine.");}
    if(profile.skin==="Dry" && /moistur|cream|balm|essence|hydrating/.test(text)){score+=1;reasons.push("The format is oriented toward moisture support.");}
    if(profile.skin==="Oily" && /gel|cleanser|light|serum/.test(text)){score+=1;reasons.push("The format is relatively compatible with an oilier-skin routine.");}
-   if(profile.sensitivity==="High" && /retinol|retinoid|aha|bha|acid/.test(text)){score-=2;reasons.push("Higher caution because the product category may involve potentially irritating actives.");}
+   if(profile.sensitivity==="High" && /retinol|retinoid|aha|bha|acid/.test(text)){score-=2;reasons.push("The formulation category warrants more caution for high sensitivity.");}
  }
  return {score,reasons};
 }
@@ -195,19 +236,18 @@ async function renderCompare(){
 function buildProfile(){
  const profile={age:$("age").value,gender:$("gender").value,region:$("region").value,climate:$("climate").value,skin:$("skin").value,sensitivity:$("sensitivity").value,routine:$("routine").value};
  const c=S.concerns.find(x=>x.name===$("concern").value);if(!c)return;
- const rows=S.products.map(p=>({p,...productScore(p,c.id,profile)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score||a.p.name.localeCompare(b.p.name)).slice(0,6);
- if(!rows.length){$("rec").innerHTML='<strong>No sufficiently mapped matches yet</strong><p class="muted">There is not enough current product-to-concern evidence to build a transparent shortlist for this profile.</p>';return;}
- const top=rows[0],second=rows[1];
- let html='<strong>Best aligned for this profile</strong><div style="margin-top:10px;font-size:22px;font-weight:800">'+esc(top.p.name)+'</div><div class="muted">'+esc(brand(top.p.brand_id))+' · '+top.score.toFixed(1)+'/7 alignment</div><ul class="reason-list">'+top.reasons.slice(0,4).map(r=>'<li>'+esc(r)+'</li>').join("")+'</ul>';
- if(second){
-   const diff=top.score-second.score;
-   html+='<div class="compare-result"><b>Why this one over the next option?</b><p class="muted">'+(diff>0?"It has the stronger current concern/formulation alignment signals for your selected profile.":"The two products are very close on the current data.")+'</p><div class="detail-grid"><div class="fact"><b>Product A</b><div>'+esc(top.p.name)+'</div><div class="score">'+top.score.toFixed(1)+'/7</div></div><div class="fact"><b>Product B</b><div>'+esc(second.p.name)+'</div><div class="score">'+second.score.toFixed(1)+'/7</div></div></div></div>';
- }
- html+='<p class="small muted">Profile: '+esc(profile.age)+' · '+esc(profile.region)+' · '+esc(profile.climate)+' · '+esc(profile.skin)+' skin · '+esc(profile.sensitivity)+' sensitivity · '+esc(c.name)+'. Gender is recorded as optional context and is not used as an efficacy assumption.</p><h3 style="margin-top:24px">Other aligned products</h3>';
- html+=rows.slice(1).map(x=>'<div style="padding:14px 0;border-top:1px solid #dfe5dc"><div style="display:flex;justify-content:space-between;gap:12px"><div><b>'+esc(x.p.name)+'</b><div class="muted">'+esc(brand(x.p.brand_id))+'</div></div><span class="score">'+x.score.toFixed(1)+'/7</span></div><button class="btn alt" style="margin-top:8px" data-product="'+esc(x.p.id)+'">View product →</button></div>').join("");
+ const rows=S.products.map(p=>({p,...productScore(p,c.id,profile)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score||a.p.name.localeCompare(b.p.name));
+ if(!rows.length){$("rec").innerHTML='<strong>No direct recommendation yet</strong><p class="muted">Skin Index does not currently have enough documented product-to-concern mapping for '+esc(c.name)+'. We will not recommend a product based only on climate or skin-type assumptions.</p>';return;}
+ const top=rows[0];
+ let html='<strong>Recommended for your profile</strong><div style="margin-top:10px;font-size:28px;font-weight:800">'+esc(top.p.name)+'</div><div class="muted">'+esc(brand(top.p.brand_id))+'</div><ul class="reason-list">'+top.reasons.slice(0,4).map(r=>'<li>'+esc(r)+'</li>').join("")+'</ul>';
+ html+='<div class="detail-grid"><div class="fact"><b>Your concern</b><div class="muted">'+esc(c.name)+'</div></div><div class="fact"><b>Profile context</b><div class="muted">'+esc(profile.skin)+' skin · '+esc(profile.climate)+' · '+esc(profile.sensitivity)+' sensitivity · '+esc(profile.routine)+' routine</div></div></div>';
+ html+='<p class="small muted">This recommendation starts with documented concern mapping. Climate, skin type and sensitivity are contextual signals; they do not replace product-specific evidence.</p>';
+ html+='<h3 style="margin-top:24px">Other products mapped to '+esc(c.name)+'</h3>';
+ html+=rows.slice(1,7).map(x=>'<div style="padding:14px 0;border-top:1px solid #dfe5dc"><div><b>'+esc(x.p.name)+'</b><div class="muted">'+esc(brand(x.p.brand_id))+'</div></div><button class="btn alt" style="margin-top:8px" data-product="'+esc(x.p.id)+'">View product →</button></div>').join("");
  $("rec").innerHTML=html;
  document.querySelectorAll("#rec [data-product]").forEach(b=>b.onclick=()=>{$("product-select").value=b.dataset.product;showSelectedProduct();go("products-section")});
 }
+
 async function load(){
  const qs=await Promise.all([
    get("products",{select:"id,name,category,subcategory,brand_id,image_url,origin_region,description,how_to_use,confidence,official_url",status:"eq.published",order:"name",limit:"1000"}),
@@ -220,9 +260,9 @@ async function load(){
  fillSelects();renderCompare();
 }
 document.addEventListener("DOMContentLoaded",()=>{
- $("nav-products").onclick=()=>go("products-section");$("nav-ingredients").onclick=()=>go("ingredients");$("nav-compare").onclick=()=>go("compare");$("nav-profile").onclick=()=>go("profile");
+ $("nav-products").onclick=()=>go("products-section");$("nav-ingredients").onclick=()=>go("ingredients");$("nav-brands").onclick=()=>go("brands");$("nav-compare").onclick=()=>go("compare");$("nav-profile").onclick=()=>go("profile");
  $("hero-profile").onclick=()=>go("profile");$("hero-products").onclick=()=>go("products-section");
- $("build-profile").onclick=buildProfile;$("q").oninput=renderProducts;$("product-select").onchange=showSelectedProduct;$("ingredient-q").oninput=renderIngredients;$("ingredient-select").onchange=showSelectedIngredient;$("a").onchange=renderCompare;$("b").onchange=renderCompare;$("compare-concern").onchange=()=>{renderCompareProductOptions();renderCompare();};
+ $("build-profile").onclick=buildProfile;$("q").oninput=renderProducts;$("product-select").onchange=showSelectedProduct;$("ingredient-q").oninput=renderIngredients;$("ingredient-select").onchange=showSelectedIngredient;$("brand-q").oninput=renderBrands;$("brand-select").onchange=showSelectedBrand;$("a").onchange=renderCompare;$("b").onchange=renderCompare;$("compare-concern").onchange=()=>{renderCompareProductOptions();renderCompare();};
  load().catch(e=>{console.error(e);$("product-view").innerHTML='<div class="card"><h3>Could not load product data</h3><p class="muted">Please refresh and try again.</p></div>';$("ingredient-view").innerHTML='<div class="card"><h3>Could not load ingredient data</h3><p class="muted">Please refresh and try again.</p></div>';});
 });
 })();
