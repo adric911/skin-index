@@ -26,7 +26,7 @@ nav{height:72px;padding:0 6%;display:flex;align-items:center;justify-content:spa
 
 <section id="ingredients" class="section"><div class="eyebrow">Ingredient Library</div><h2>Understand what’s inside.</h2><p class="lead">Search or select an ingredient only when you want to research it. The library is expanding across actives, barrier lipids, humectants, botanicals and UV filters.</p><div class="toolbar"><input id="ingredient-q" class="input" placeholder="Search ingredients…"><select id="ingredient-select" class="select"><option>Select an ingredient…</option></select></div><div id="ingredient-view" class="card" style="margin-top:22px"><p class="muted">Select an ingredient to see what it does, evidence, typical use context and products containing it.</p></div></section>
 
-<section id="compare" class="section"><div class="eyebrow">Compare</div><h2>Compare formulations.</h2><p class="lead">Select two products and a concern. Skin Index will tell you which is better aligned based on the documented data — and why.</p><div class="toolbar"><select id="a" class="select"></select><select id="b" class="select"></select><select id="compare-concern" class="select"></select></div><div id="cmp" class="split" style="margin-top:22px"></div><div id="compare-result"></div></section>
+<section id="compare" class="section"><div class="eyebrow">Compare</div><h2>Compare formulations.</h2><p class="lead">Start with the skin concern you want to solve. Then choose two products that are mapped to that concern. Skin Index compares their documented formulation signals.</p><div class="card" style="margin-top:22px"><label class="field" style="margin-bottom:0"><b>1. What are you comparing for?</b><select id="compare-concern" class="select"></select></label></div><div class="toolbar" style="margin-top:14px"><select id="a" class="select"></select><select id="b" class="select"></select></div><div id="cmp" class="split" style="margin-top:22px"></div><div id="compare-result"></div></section>
 
 <section id="profile" class="section"><div class="eyebrow">Skin Profile Agent</div><h2>Start with your skin.</h2><p class="lead">Tell the Agent more than just your skin type. It uses your profile as context, then explains why each product is or is not aligned.</p><div class="split"><div class="card">
 <label class="field">Age group<select id="age" class="select"><option>18–24</option><option>25–34</option><option>35–44</option><option>45–54</option><option>55+</option></select></label>
@@ -97,12 +97,31 @@ async function showSelectedIngredient(){
  try{const rows=await get("product_ingredients",{select:"product_id",ingredient_id:"eq."+id,limit:"100"});const ids=[...new Set(rows.map(x=>x.product_id))];$("ingredient-products").innerHTML=ids.length?ids.slice(0,30).map(pid=>{const p=S.products.find(x=>x.id===pid);return p?'<button class="btn alt" data-product="'+pid+'">'+esc(p.name)+'</button>':""}).join(""):"<span class='muted'>No products mapped yet.</span>";document.querySelectorAll("#ingredient-products [data-product]").forEach(b=>b.onclick=()=>{$("product-select").value=b.dataset.product;showSelectedProduct();go("products-section")});}catch(e){$("ingredient-products").innerHTML="<span class='muted'>Product mappings could not be loaded.</span>";}
 }
 
+function renderCompareProductOptions(){
+ const cid=$("compare-concern").value;
+ const mapped=cid?S.products.filter(p=>concernMap(p.id).some(m=>m.concern_id===cid)):S.products;
+ const sorted=[...mapped].sort((x,y)=>{
+   const rx=String(mappedStrength(x.id,cid)||"").toLowerCase(),ry=String(mappedStrength(y.id,cid)||"").toLowerCase();
+   const rank=z=>z==="primary"?0:z==="secondary"?1:2;
+   return rank(rx)-rank(ry)||x.name.localeCompare(y.name);
+ });
+ const currentA=$("a").value,currentB=$("b").value;
+ const label=cid?(sorted.length?"Select a product…":"No products are mapped to this concern"):"Select a product…";
+ const opts='<option value="">'+label+'</option>'+sorted.map(p=>{
+   const rel=mappedStrength(p.id,cid);
+   return '<option value="'+p.id+'">'+esc(p.name)+' — '+esc(brand(p.brand_id))+(rel?' · '+esc(rel):'')+'</option>';
+ }).join("");
+ $("a").innerHTML=opts;$("b").innerHTML=opts;
+ if(sorted.some(p=>p.id===currentA))$("a").value=currentA;
+ if(sorted.some(p=>p.id===currentB) && currentB!==currentA)$("b").value=currentB;
+ if(!$("a").value && sorted[0])$("a").value=sorted[0].id;
+ if(!$("b").value && sorted[1])$("b").value=sorted[1].id;
+ if($("b").value===$("a").value && sorted[1])$("b").value=sorted[1].id;
+}
 function fillSelects(){
  $("concern").innerHTML=S.concerns.map(x=>"<option>"+esc(x.name)+"</option>").join("");
- $("compare-concern").innerHTML='<option value="">Select a concern…</option>'+S.concerns.map(x=>"<option value='"+esc(x.id)+"'>"+esc(x.name)+"</option>").join("");
- $("a").innerHTML=S.products.map(x=>'<option value="'+x.id+'">'+esc(x.name)+"</option>").join("");
- $("b").innerHTML=$("a").innerHTML;if(S.products[1])$("b").value=S.products[1].id;
- renderProducts();renderIngredients();
+ $("compare-concern").innerHTML=S.concerns.map(x=>"<option value='"+esc(x.id)+"'>"+esc(x.name)+"</option>").join("");
+ renderProducts();renderIngredients();renderCompareProductOptions();
 }
 function concernMap(pid){return S.pcs.filter(x=>x.product_id===pid)}
 function concernNames(pid){return concernMap(pid).map(m=>S.concerns.find(c=>c.id===m.concern_id)?.name).filter(Boolean)}
@@ -150,20 +169,26 @@ async function compareData(x,y,cid){
  return {aScore,bScore,reasonsA,reasonsB,namesA,namesB,aEvidence,bEvidence,aDisclosed,bDisclosed};
 }
 async function renderCompare(){
- const x=S.products.find(p=>p.id===$("a").value),y=S.products.find(p=>p.id===$("b").value);if(!x||!y)return;
- $("cmp").innerHTML=[["A",x],["B",y]].map(([label,p])=>'<div class="card"><div class="brand">'+esc(label+" · "+brand(p.brand_id))+'</div><h3>'+esc(p.name)+'</h3><div class="muted">'+esc(p.category||"Skincare")+(p.subcategory?" · "+esc(p.subcategory):"")+'</div><div class="detail-section"><b>Mapped concerns</b><p class="muted">'+esc(concernNames(p.id).join(", ")||"No mapped concerns")+'</p></div><div><b>What the data says</b><p class="muted">The comparison checks concern mapping, mapped ingredient evidence labels and product-specific concentration disclosures.</p></div></div>').join("");
- const cid=$("compare-concern").value;
- if(!cid){$("compare-result").innerHTML='<div class="compare-result"><h3>Which is better aligned?</h3><p class="muted">Choose a concern above. Skin Index will then compare the two products using documented concern mapping and formulation evidence rather than a generic rating.</p></div>';return;}
- $("compare-result").innerHTML='<div class="compare-result"><h3>Analysing the two formulations…</h3></div>';
+ const x=S.products.find(p=>p.id===$("a").value),y=S.products.find(p=>p.id===$("b").value),cid=$("compare-concern").value;
+ if(!x||!y||!cid){
+   $("cmp").innerHTML="";
+   $("compare-result").innerHTML='<div class="compare-result"><h3>Choose two products</h3><p class="muted">Select a concern first. The product selectors are then limited to products with documented mapping for that concern.</p></div>';
+   return;
+ }
+ const concernName=$("compare-concern").selectedOptions[0]?.text||"selected concern";
+ const relA=mappedStrength(x.id,cid),relB=mappedStrength(y.id,cid);
+ $("cmp").innerHTML=[["A",x,relA],["B",y,relB]].map(([label,p,rel])=>'<div class="card"><div class="brand">'+esc(label+" · "+brand(p.brand_id))+'</div><h3>'+esc(p.name)+'</h3><div class="muted">'+esc(p.category||"Skincare")+(p.subcategory?" · "+esc(p.subcategory):"")+'</div><div class="detail-section"><b>Alignment to '+esc(concernName)+'</b><p class="muted"><span class="pill">'+esc(rel||"Not mapped")+'</span></p></div><div><b>Product data</b><p class="muted">The result below uses concern mapping, mapped ingredient evidence and disclosed concentration data currently captured by Skin Index.</p></div></div>').join("");
+ $("compare-result").innerHTML='<div class="compare-result"><h3>Result for '+esc(concernName)+'</h3><p class="muted">Analysing the documented formulation signals…</p></div>';
  try{
    const d=await compareData(x,y,cid);
-   let winner=d.aScore>d.bScore?"A":d.bScore>d.aScore?"B":null;
-   let html='<div class="compare-result"><h3>Which is better aligned?</h3>';
-   if(winner){
-     const p=winner==="A"?x:y, reasons=winner==="A"?d.reasonsA:d.reasonsB;
-     html+='<div class="winner">'+esc(p.name)+'</div><p>For <b>'+esc($("compare-concern").selectedOptions[0].text)+'</b>, the current Skin Index evidence gives this product the stronger documented alignment.</p><ul class="reason-list">'+reasons.map(z=>'<li>'+esc(z)+'</li>').join("")+'</ul><div class="detail-grid"><div class="fact"><b>Mapped ingredients</b><div class="muted">'+esc((winner==="A"?d.namesA:d.namesB).join(", ")||"None mapped")+'</div></div><div class="fact"><b>Evidence / disclosed concentration signals</b><div class="muted">'+(winner==="A"?d.aEvidence:d.bEvidence)+' high-evidence ingredient mappings · '+(winner==="A"?d.aDisclosed:d.bDisclosed)+' disclosed concentrations</div></div></div>';
-   }else html+='<p>Neither product has a stronger documented alignment on the selected concern. Their current data signals are tied, so the product detail records should be used to inspect formulation differences.</p>';
-   html+='<p class="small muted">This is a profile/concern alignment result, not a universal product-quality rating.</p></div>';
+   let html='<div class="compare-result"><h3>Result for '+esc(concernName)+'</h3>';
+   if(d.aScore>d.bScore || d.bScore>d.aScore){
+     const isA=d.aScore>d.bScore,p=isA?x:y,score=isA?d.aScore:d.bScore,other=isA?y:x,reasons=isA?d.reasonsA:d.reasonsB;
+     html+='<div class="winner">Stronger documented alignment: '+esc(p.name)+'</div><p>'+esc(p.name)+' has the stronger current Skin Index evidence for <b>'+esc(concernName)+'</b> than '+esc(other.name)+'.</p><ul class="reason-list">'+reasons.map(z=>'<li>'+esc(z)+'</li>').join("")+'</ul><div class="detail-grid"><div class="fact"><b>Concern mapping</b><div class="muted">'+esc(isA?relA:relB)+'</div></div><div class="fact"><b>Ingredient evidence</b><div class="muted">'+(isA?d.aEvidence:d.bEvidence)+' high-evidence mappings · '+(isA?d.aDisclosed:d.bDisclosed)+' disclosed concentrations</div></div></div>';
+   }else{
+     html+='<div class="winner">Same documented alignment</div><p>Both products have the same current concern-alignment signal. Skin Index does not invent a winner when the documented evidence is equivalent.</p><div class="detail-grid"><div class="fact"><b>'+esc(x.name)+'</b><div class="muted">'+esc(relA)+' · '+d.aEvidence+' high-evidence mappings · '+d.aDisclosed+' disclosed concentrations</div></div><div class="fact"><b>'+esc(y.name)+'</b><div class="muted">'+esc(relB)+' · '+d.bEvidence+' high-evidence mappings · '+d.bDisclosed+' disclosed concentrations</div></div></div>';
+   }
+   html+='<p class="small muted">This is a concern-specific formulation alignment result, not a universal product-quality rating.</p></div>';
    $("compare-result").innerHTML=html;
  }catch(e){console.error(e);$("compare-result").innerHTML='<div class="compare-result"><p class="muted">Comparison data could not be loaded. Please try again.</p></div>';}
 }
@@ -197,8 +222,7 @@ async function load(){
 document.addEventListener("DOMContentLoaded",()=>{
  $("nav-products").onclick=()=>go("products-section");$("nav-ingredients").onclick=()=>go("ingredients");$("nav-compare").onclick=()=>go("compare");$("nav-profile").onclick=()=>go("profile");
  $("hero-profile").onclick=()=>go("profile");$("hero-products").onclick=()=>go("products-section");
- $("build-profile").onclick=buildProfile;$("q").oninput=renderProducts;$("product-select").onchange=showSelectedProduct;$("ingredient-q").oninput=renderIngredients;$("ingredient-select").onchange=showSelectedIngredient;$("a").onchange=renderCompare;$("b").onchange=renderCompare;$("compare-concern").onchange=renderCompare;
- $("close-modal").onclick=()=>$("product-modal").classList.remove("open");$("product-modal").onclick=e=>{if(e.target.id==="product-modal")$("product-modal").classList.remove("open")};
+ $("build-profile").onclick=buildProfile;$("q").oninput=renderProducts;$("product-select").onchange=showSelectedProduct;$("ingredient-q").oninput=renderIngredients;$("ingredient-select").onchange=showSelectedIngredient;$("a").onchange=renderCompare;$("b").onchange=renderCompare;$("compare-concern").onchange=()=>{renderCompareProductOptions();renderCompare();};
  load().catch(e=>{console.error(e);$("product-view").innerHTML='<div class="card"><h3>Could not load product data</h3><p class="muted">Please refresh and try again.</p></div>';$("ingredient-view").innerHTML='<div class="card"><h3>Could not load ingredient data</h3><p class="muted">Please refresh and try again.</p></div>';});
 });
 })();
