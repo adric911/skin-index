@@ -42,7 +42,6 @@ nav{height:72px;padding:0 6%;display:flex;align-items:center;justify-content:spa
 </main>
 <footer class="footer"><div class="wrap">Skin Index · AI-powered skincare intelligence</div></footer>
 
-<div id="product-modal" class="modal"><div class="modal-box"><button id="close-modal" class="close">×</button><div id="product-detail">Loading product…</div></div></div>
 <script>
 (function(){
 const API="https://xxbpgajwkckvdqkhubbd.supabase.co/rest/v1";
@@ -126,33 +125,6 @@ function productScore(p,cid,profile){
  return {score,reasons};
 }
 
-async function openProduct(id){
- const p=S.products.find(x=>x.id===id);if(!p)return;
- $("product-modal").classList.add("open");$("product-detail").innerHTML="<p class='muted'>Loading product intelligence…</p>";
- try{
-   const [forms,pis,claims,pcs]=await Promise.all([
-     get("product_formulations",{select:"id,formulation_label,formulation_date,verified_at,full_inci,inci_source_url,is_current,confidence,notes",product_id:"eq."+id,order:"is_current.desc,formulation_date.desc",limit:"5"}),
-     get("product_ingredients",{select:"ingredient_id,inci_order,disclosed_concentration,disclosed_unit,strength_level,evidence_level,function_notes,confidence",product_id:"eq."+id,order:"inci_order",limit:"100"}),
-     get("product_claims",{select:"claim,claim_type,source_url,source_name,verified_at,notes",product_id:"eq."+id,limit:"50"}),
-     get("product_concerns",{select:"concern_id,relevance,rationale,confidence",product_id:"eq."+id,limit:"50"})
-   ]);
-   const ids=[...new Set(pis.map(x=>x.ingredient_id).filter(Boolean))];
-   const ing=ids.length?await get("ingredients",{select:"id,name,family,description,functions,evidence_level,am_pm,compatible_with,caution_with,typical_concentration_min,typical_concentration_max,unit",id:"in.("+ids.join(",")+")",limit:"100"}):[];
-   const im=Object.fromEntries(ing.map(x=>[x.id,x]));
-   const f=forms[0]||{};
-   const concerns=pcs.map(x=>{const c=S.concerns.find(c=>c.id===x.concern_id);return c?c.name+" ("+String(x.relevance||"").toLowerCase()+")":""}).filter(Boolean);
-   const image=p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" onerror="this.style.display=\'none\'">':'<div class="product-image-fallback">'+esc((brand(p.brand_id)||"SI").slice(0,2).toUpperCase())+"</div>";
-   $("product-detail").innerHTML='<div class="detail-head"><div class="detail-image">'+image+'</div><div><div class="brand">'+esc(brand(p.brand_id))+'</div><h2>'+esc(p.name)+'</h2><p class="muted">'+esc(p.category||"Skincare")+(p.subcategory?" · "+esc(p.subcategory):"")+(p.origin_region?" · "+esc(p.origin_region):"")+'</p><p>'+esc(p.description||"Product record in the Skin Index catalogue.")+'</p><div class="tags">'+(concerns.map(x=>'<span class="pill">'+esc(x)+'</span>').join("")||'<span class="pill">No concern mapping yet</span>')+'</div></div></div>'+
-   '<div class="detail-section"><h3>What is it used for?</h3><p class="muted">'+esc(p.description||"The product record does not yet contain an editorial use summary. Use the mapped concerns and formulation data below as the current evidence layer.")+'</p></div>'+
-   '<div class="detail-section"><h3>Key ingredients</h3><div>'+(pis.map(x=>{const i=im[x.ingredient_id];if(!i)return"";const disclosed=x.disclosed_concentration!=null?x.disclosed_concentration+" "+(x.disclosed_unit||""):"Concentration not disclosed";return '<span class="ingredient-chip"><b>'+esc(i.name)+'</b> · '+esc(disclosed)+'</span>'}).join("")||'<span class="muted">No mapped ingredients yet.</span>')+'</div></div>'+
-   '<div class="detail-section"><h3>Ingredient functions & evidence</h3><div class="detail-grid">'+(pis.slice(0,12).map(x=>{const i=im[x.ingredient_id];if(!i)return"";return '<div class="fact"><b>'+esc(i.name)+'</b><div class="muted">'+esc((i.functions||[]).join(", ")||i.description||"Function data not yet expanded.")+'</div><div class="small" style="margin-top:7px">Evidence: '+esc(x.evidence_level||i.evidence_level||"unknown")+'</div></div>'}).join("")||'<div class="fact">No ingredient evidence mapped yet.</div>')+'</div></div>'+
-   '<div class="detail-section"><h3>How to use</h3><p class="muted">'+esc(p.how_to_use||"Follow the brand directions on the current packaging. Skin Index will show product-specific directions when they are available in the source record.")+'</p></div>'+
-   '<div class="detail-section"><h3>Full INCI</h3><p class="muted small">'+esc(f.full_inci||"Full INCI not yet captured for this formulation.")+'</p></div>'+
-   '<div class="detail-section"><h3>Brand claims</h3><ul class="reason-list">'+(claims.map(c=>'<li>'+esc(c.claim)+(c.claim_type?" <span class=\'small muted\'>("+esc(c.claim_type)+")</span>":"")+'</li>').join("")||"<li>No claims captured yet.</li>")+'</ul></div>'+
-   '<div class="detail-section small muted">Formulation: '+esc(f.formulation_label||"Current record")+' · Confidence: '+esc(f.confidence??p.confidence??"unknown")+(f.verified_at?" · Verified "+esc(f.verified_at):"")+'</div>';
- }catch(e){console.error(e);$("product-detail").innerHTML='<h2>'+esc(p.name)+'</h2><p class="muted">The product record loaded, but its detailed formulation data could not be retrieved right now.</p>';}
-}
-
 async function compareData(x,y,cid){
  const [pa,pb]=await Promise.all([
    get("product_ingredients",{select:"ingredient_id,disclosed_concentration,disclosed_unit,evidence_level,strength_level",product_id:"eq."+x.id,limit:"100"}),
@@ -209,7 +181,7 @@ function buildProfile(){
  html+='<p class="small muted">Profile: '+esc(profile.age)+' · '+esc(profile.region)+' · '+esc(profile.climate)+' · '+esc(profile.skin)+' skin · '+esc(profile.sensitivity)+' sensitivity · '+esc(c.name)+'. Gender is recorded as optional context and is not used as an efficacy assumption.</p><h3 style="margin-top:24px">Other aligned products</h3>';
  html+=rows.slice(1).map(x=>'<div style="padding:14px 0;border-top:1px solid #dfe5dc"><div style="display:flex;justify-content:space-between;gap:12px"><div><b>'+esc(x.p.name)+'</b><div class="muted">'+esc(brand(x.p.brand_id))+'</div></div><span class="score">'+x.score.toFixed(1)+'/7</span></div><button class="btn alt" style="margin-top:8px" data-product="'+esc(x.p.id)+'">View product →</button></div>').join("");
  $("rec").innerHTML=html;
- document.querySelectorAll("#rec [data-product]").forEach(b=>b.onclick=()=>openProduct(b.dataset.product));
+ document.querySelectorAll("#rec [data-product]").forEach(b=>b.onclick=()=>{$("product-select").value=b.dataset.product;showSelectedProduct();go("products-section")});
 }
 async function load(){
  const qs=await Promise.all([
@@ -227,7 +199,7 @@ document.addEventListener("DOMContentLoaded",()=>{
  $("hero-profile").onclick=()=>go("profile");$("hero-products").onclick=()=>go("products-section");
  $("build-profile").onclick=buildProfile;$("q").oninput=renderProducts;$("product-select").onchange=showSelectedProduct;$("ingredient-q").oninput=renderIngredients;$("ingredient-select").onchange=showSelectedIngredient;$("a").onchange=renderCompare;$("b").onchange=renderCompare;$("compare-concern").onchange=renderCompare;
  $("close-modal").onclick=()=>$("product-modal").classList.remove("open");$("product-modal").onclick=e=>{if(e.target.id==="product-modal")$("product-modal").classList.remove("open")};
- load().catch(e=>{console.error(e);$("product-grid").innerHTML='<div class="card"><h3>Could not load product data</h3><p class="muted">Please refresh and try again.</p></div>';});
+ load().catch(e=>{console.error(e);$("product-view").innerHTML='<div class="card"><h3>Could not load product data</h3><p class="muted">Please refresh and try again.</p></div>';$("ingredient-view").innerHTML='<div class="card"><h3>Could not load ingredient data</h3><p class="muted">Please refresh and try again.</p></div>';});
 });
 })();
 </script>
