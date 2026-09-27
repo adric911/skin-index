@@ -22,11 +22,11 @@ nav{height:72px;padding:0 6%;display:flex;align-items:center;justify-content:spa
 <main class="wrap">
 <section class="hero"><div><div class="eyebrow">AI-powered skincare intelligence</div><h1>Understand your skin. Research what you use.</h1><p>Products, ingredients and formulation signals in one transparent skincare intelligence layer — without the hype.</p><div class="buttons"><button id="hero-profile" class="btn">Find what’s right for me</button><button id="hero-products" class="btn alt">Explore products</button></div></div><div class="heroCard"><div class="muted">Example Skin Profile</div><div class="profile"><strong>35–44 · Singapore</strong><div class="tags"><span class="pill">Oily</span><span class="pill">Dark spots</span><span class="pill">Mild sensitivity</span><span class="pill">Hot & humid</span></div><p class="muted">The Agent considers profile, climate, concerns, ingredient evidence and formulation characteristics.</p></div></div></section>
 
-<section id="products-section" class="section"><div class="eyebrow">Global Product Index</div><h2>Research products, not hype.</h2><p class="lead">Every product is clickable. Open the product record to see what it is, what is inside, what it is used for, and how the available evidence supports its role.</p><div class="toolbar"><input id="q" class="input" placeholder="Search products or brands…"><select id="cat" class="select"><option>All categories</option></select></div><div id="product-grid" class="cards"><div class="card">Loading products…</div></div></section>
+<section id="products-section" class="section"><div class="eyebrow">Global Product Index</div><h2>Research products, not hype.</h2><p class="lead">Search the catalogue, select a product, then open its full formulation intelligence.</p><div class="toolbar"><input id="q" class="input" placeholder="Search product or brand…"><select id="product-select" class="select"><option>Select a product…</option></select></div><div id="product-view" class="card" style="margin-top:22px"><p class="muted">Select a product to view its image, description, ingredients, functions and use.</p></div></section>
 
-<section id="ingredients" class="section"><div class="eyebrow">Ingredient Library</div><h2>Understand what’s inside.</h2><p class="lead">Concentrations are only shown when disclosed or verified — never guessed from INCI order.</p><div id="ings" class="cards"><div class="card">Loading ingredients…</div></div></section>
+<section id="ingredients" class="section"><div class="eyebrow">Ingredient Library</div><h2>Understand what’s inside.</h2><p class="lead">Search or select an ingredient only when you want to research it. The library is expanding across actives, barrier lipids, humectants, botanicals and UV filters.</p><div class="toolbar"><input id="ingredient-q" class="input" placeholder="Search ingredients…"><select id="ingredient-select" class="select"><option>Select an ingredient…</option></select></div><div id="ingredient-view" class="card" style="margin-top:22px"><p class="muted">Select an ingredient to see what it does, evidence, typical use context and products containing it.</p></div></section>
 
-<section id="compare" class="section"><div class="eyebrow">Compare</div><h2>Compare formulations.</h2><p class="lead">The comparison now produces a fact-based alignment result instead of stopping at two product cards.</p><div class="toolbar"><select id="a" class="select"></select><select id="b" class="select"></select><select id="compare-concern" class="select"></select></div><div id="cmp" class="split"></div><div id="compare-result"></div></section>
+<section id="compare" class="section"><div class="eyebrow">Compare</div><h2>Compare formulations.</h2><p class="lead">Select two products and a concern. Skin Index will tell you which is better aligned based on the documented data — and why.</p><div class="toolbar"><select id="a" class="select"></select><select id="b" class="select"></select><select id="compare-concern" class="select"></select></div><div id="cmp" class="split" style="margin-top:22px"></div><div id="compare-result"></div></section>
 
 <section id="profile" class="section"><div class="eyebrow">Skin Profile Agent</div><h2>Start with your skin.</h2><p class="lead">Tell the Agent more than just your skin type. It uses your profile as context, then explains why each product is or is not aligned.</p><div class="split"><div class="card">
 <label class="field">Age group<select id="age" class="select"><option>18–24</option><option>25–34</option><option>35–44</option><option>45–54</option><option>55+</option></select></label>
@@ -56,27 +56,55 @@ const get=(path,params={})=>{const q=new URLSearchParams(params);return fetch(AP
 const imgFallback=p=>'<div class="product-image-wrap"><div class="product-image-fallback">'+esc((brand(p.brand_id)||"SI").slice(0,2).toUpperCase())+"</div></div>";
 
 function renderProducts(){
- const q=($("q").value||"").toLowerCase(),cat=$("cat").value;
- const rows=S.products.filter(p=>(!q||(p.name+" "+brand(p.brand_id)+" "+(p.category||"")).toLowerCase().includes(q))&&(!cat||cat==="All categories"||p.category===cat)).slice(0,100);
- $("product-grid").innerHTML=rows.length?rows.map(p=>{
-   const image=p.image_url?'<div class="product-image-wrap"><img class="product-image" src="'+esc(p.image_url)+'" alt="'+esc(p.name)+' product image" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'"><div class="product-image-fallback" style="display:none">'+esc((brand(p.brand_id)||"SI").slice(0,2).toUpperCase())+"</div></div>":imgFallback(p);
-   return '<article class="card product-card" data-product="'+esc(p.id)+'">'+image+'<div class="brand">'+esc(brand(p.brand_id))+'</div><h3>'+esc(p.name)+'</h3><div class="muted">'+esc(p.category||"Skincare")+(p.subcategory?" · "+esc(p.subcategory):"")+'</div><div class="small muted" style="margin-top:10px">Open product intelligence →</div></article>'
- }).join(""):'<div class="card">No products found.</div>';
- document.querySelectorAll(".product-card").forEach(e=>e.onclick=()=>openProduct(e.dataset.product));
+ const q=($("q").value||"").toLowerCase().trim();
+ const rows=S.products.filter(p=>!q||(p.name+" "+brand(p.brand_id)).toLowerCase().includes(q));
+ const sel=$("product-select"),current=sel.value;
+ sel.innerHTML='<option value="">'+(rows.length?"Select a product…":"No matching products")+'</option>'+rows.map(p=>'<option value="'+p.id+'">'+esc(p.name)+' — '+esc(brand(p.brand_id))+'</option>').join("");
+ if(rows.some(p=>p.id===current))sel.value=current;
+}
+async function showSelectedProduct(){
+ const id=$("product-select").value;
+ if(id) await openProductIntoView(id);
+ else $("product-view").innerHTML='<p class="muted">Select a product to view its image, description, ingredients, functions and use.</p>';
+}
+async function openProductIntoView(id){
+ const p=S.products.find(x=>x.id===id);if(!p)return;
+ $("product-view").innerHTML='<p class="muted">Loading product intelligence…</p>';
+ try{
+  const [forms,pis,claims,pcs]=await Promise.all([
+   get("product_formulations",{select:"id,formulation_label,formulation_date,verified_at,full_inci,confidence,notes",product_id:"eq."+id,order:"is_current.desc,formulation_date.desc",limit:"5"}),
+   get("product_ingredients",{select:"ingredient_id,inci_order,disclosed_concentration,disclosed_unit,strength_level,evidence_level,function_notes,confidence",product_id:"eq."+id,order:"inci_order",limit:"100"}),
+   get("product_claims",{select:"claim,claim_type,source_name,notes",product_id:"eq."+id,limit:"50"}),
+   get("product_concerns",{select:"concern_id,relevance,rationale,confidence",product_id:"eq."+id,limit:"50"})
+  ]);
+  const ids=[...new Set(pis.map(x=>x.ingredient_id).filter(Boolean))],ing=ids.length?await get("ingredients",{select:"id,name,family,description,functions,evidence_level,am_pm",id:"in.("+ids.join(",")+")",limit:"100"}):[],im=Object.fromEntries(ing.map(x=>[x.id,x])),f=forms[0]||{};
+  const image=p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" onerror="this.style.display=\'none\'">':'<div class="muted small">Product image not yet sourced</div>';
+  const concerns=pcs.map(x=>{const z=S.concerns.find(c=>c.id===x.concern_id);return z?z.name+" · "+String(x.relevance||"").toLowerCase():""}).filter(Boolean);
+  $("product-view").innerHTML='<div class="detail-head"><div class="detail-image">'+image+'</div><div><div class="brand">'+esc(brand(p.brand_id))+'</div><h2>'+esc(p.name)+'</h2><p class="muted">'+esc(p.category||"Skincare")+(p.subcategory?" · "+esc(p.subcategory):"")+'</p><p>'+esc(p.description||"Product description not yet expanded.")+'</p><div class="tags">'+concerns.map(x=>'<span class="pill">'+esc(x)+'</span>').join("")+'</div></div></div><div class="detail-section"><h3>What is it used for?</h3><p class="muted">'+esc(p.description||"Use is interpreted from the product category, mapped concerns and formulation data. Product-specific directions are shown when captured.")+'</p></div><div class="detail-section"><h3>Key ingredients</h3><div>'+(pis.map(x=>{const i=im[x.ingredient_id];if(!i)return"";return '<span class="ingredient-chip"><b>'+esc(i.name)+'</b> · '+esc(x.disclosed_concentration!=null?x.disclosed_concentration+" "+(x.disclosed_unit||""):"not disclosed")+'</span>'}).join("")||'<span class="muted">No mapped ingredients yet.</span>')+'</div></div><div class="detail-section"><h3>Ingredient functions</h3><div class="detail-grid">'+pis.slice(0,16).map(x=>{const i=im[x.ingredient_id];return i?'<div class="fact"><b>'+esc(i.name)+'</b><div class="muted">'+esc((i.functions||[]).join(", ")||i.description||"Function data not yet expanded.")+'</div><div class="small muted">Evidence: '+esc(x.evidence_level||i.evidence_level||"unknown")+'</div></div>':""}).join("")+'</div></div><div class="detail-section"><h3>How to use</h3><p class="muted">'+esc(p.how_to_use||"Follow the brand directions on the current packaging. Skin Index does not invent product-specific directions.")+'</p></div><div class="detail-section"><h3>Full INCI</h3><p class="muted small">'+esc(f.full_inci||"Full INCI not yet captured for this formulation.")+'</p></div><div class="detail-section"><h3>Brand claims</h3><ul class="reason-list">'+(claims.map(x=>'<li>'+esc(x.claim)+'</li>').join("")||"<li>No claims captured.</li>")+'</ul></div>';
+ }catch(e){console.error(e);$("product-view").innerHTML='<p class="muted">Product detail data could not be loaded. Please try again.</p>';}
 }
 
 function renderIngredients(){
- $("ings").innerHTML=S.ingredients.length?S.ingredients.slice(0,100).map(i=>'<article class="card"><div class="brand">'+esc(i.family||"Ingredient")+'</div><h3>'+esc(i.name)+'</h3><div class="muted">'+esc(i.description||"Ingredient intelligence")+'</div><div style="margin-top:12px"><span class="pill">'+esc(i.evidence_level||"unknown")+" evidence</span></div></article>").join(""):'<div class="card">No ingredients found.</div>';
+ const q=($("ingredient-q").value||"").toLowerCase().trim();
+ const rows=S.ingredients.filter(i=>!q||i.name.toLowerCase().includes(q)||(i.family||"").toLowerCase().includes(q));
+ const sel=$("ingredient-select"),current=sel.value;
+ sel.innerHTML='<option value="">'+(rows.length?"Select an ingredient…":"No matching ingredients")+'</option>'+rows.map(i=>'<option value="'+i.id+'">'+esc(i.name)+'</option>').join("");
+ if(rows.some(i=>i.id===current))sel.value=current;
+}
+async function showSelectedIngredient(){
+ const id=$("ingredient-select").value;if(!id){$("ingredient-view").innerHTML='<p class="muted">Select an ingredient to see what it does, evidence, typical use context and products containing it.</p>';return;}
+ const i=S.ingredients.find(x=>x.id===id);if(!i)return;
+ $("ingredient-view").innerHTML='<div class="brand">'+esc(i.family||"Ingredient")+'</div><h3>'+esc(i.name)+'</h3><p class="lead">'+esc(i.description||"Ingredient information not yet expanded.")+'</p><div class="detail-grid"><div class="fact"><b>Functions</b><div class="muted">'+esc((i.functions||[]).join(", ")||"Not yet mapped")+'</div></div><div class="fact"><b>Evidence</b><div class="muted">'+esc(i.evidence_level||"Not yet assessed")+'</div></div></div><div class="detail-section"><h3>Products containing it</h3><div id="ingredient-products" class="tags"><span class="muted">Loading…</span></div></div>';
+ try{const rows=await get("product_ingredients",{select:"product_id",ingredient_id:"eq."+id,limit:"100"});const ids=[...new Set(rows.map(x=>x.product_id))];$("ingredient-products").innerHTML=ids.length?ids.slice(0,30).map(pid=>{const p=S.products.find(x=>x.id===pid);return p?'<button class="btn alt" data-product="'+pid+'">'+esc(p.name)+'</button>':""}).join(""):"<span class='muted'>No products mapped yet.</span>";document.querySelectorAll("#ingredient-products [data-product]").forEach(b=>b.onclick=()=>{$("product-select").value=b.dataset.product;showSelectedProduct();go("products-section")});}catch(e){$("ingredient-products").innerHTML="<span class='muted'>Product mappings could not be loaded.</span>";}
 }
 
 function fillSelects(){
- $("cat").innerHTML='<option>All categories</option>'+[...new Set(S.products.map(x=>x.category).filter(Boolean))].sort().map(x=>"<option>"+esc(x)+"</option>").join("");
  $("concern").innerHTML=S.concerns.map(x=>"<option>"+esc(x.name)+"</option>").join("");
- $("compare-concern").innerHTML='<option value="">Overall formulation fit</option>'+S.concerns.map(x=>"<option value='"+esc(x.id)+"'>"+esc(x.name)+"</option>").join("");
+ $("compare-concern").innerHTML='<option value="">Select a concern…</option>'+S.concerns.map(x=>"<option value='"+esc(x.id)+"'>"+esc(x.name)+"</option>").join("");
  $("a").innerHTML=S.products.map(x=>'<option value="'+x.id+'">'+esc(x.name)+"</option>").join("");
  $("b").innerHTML=$("a").innerHTML;if(S.products[1])$("b").value=S.products[1].id;
+ renderProducts();renderIngredients();
 }
-
 function concernMap(pid){return S.pcs.filter(x=>x.product_id===pid)}
 function concernNames(pid){return concernMap(pid).map(m=>S.concerns.find(c=>c.id===m.concern_id)?.name).filter(Boolean)}
 function mappedStrength(pid,cid){const m=S.pcs.find(x=>x.product_id===pid&&x.concern_id===cid);return m?String(m.relevance||"").toLowerCase():""}
@@ -192,12 +220,12 @@ async function load(){
    get("concerns",{select:"id,name,slug",order:"name",limit:"1000"})
  ]);
  S.products=qs[0];S.brands=qs[1];S.ingredients=qs[2];S.pcs=qs[3];S.concerns=qs[4];
- fillSelects();renderProducts();renderIngredients();renderCompare();
+ fillSelects();renderCompare();
 }
 document.addEventListener("DOMContentLoaded",()=>{
  $("nav-products").onclick=()=>go("products-section");$("nav-ingredients").onclick=()=>go("ingredients");$("nav-compare").onclick=()=>go("compare");$("nav-profile").onclick=()=>go("profile");
  $("hero-profile").onclick=()=>go("profile");$("hero-products").onclick=()=>go("products-section");
- $("build-profile").onclick=buildProfile;$("q").oninput=renderProducts;$("cat").onchange=renderProducts;$("a").onchange=renderCompare;$("b").onchange=renderCompare;$("compare-concern").onchange=renderCompare;
+ $("build-profile").onclick=buildProfile;$("q").oninput=renderProducts;$("product-select").onchange=showSelectedProduct;$("ingredient-q").oninput=renderIngredients;$("ingredient-select").onchange=showSelectedIngredient;$("a").onchange=renderCompare;$("b").onchange=renderCompare;$("compare-concern").onchange=renderCompare;
  $("close-modal").onclick=()=>$("product-modal").classList.remove("open");$("product-modal").onclick=e=>{if(e.target.id==="product-modal")$("product-modal").classList.remove("open")};
  load().catch(e=>{console.error(e);$("product-grid").innerHTML='<div class="card"><h3>Could not load product data</h3><p class="muted">Please refresh and try again.</p></div>';});
 });
